@@ -47,8 +47,9 @@ public class PetService {
     }
     // Equivalente a tu updatePet(pet)
     public Pet updatePet(Integer petId, Pet petDetails) {
-        Pet existingPet = getPetById(petId); // Reusa la lógica de búsqueda
+        Pet existingPet = getPetById(petId);
 
+        // Actualizamos los datos básicos
         existingPet.setName(petDetails.getName());
         existingPet.setSpecies(petDetails.getSpecies());
         existingPet.setBreed(petDetails.getBreed());
@@ -56,10 +57,21 @@ public class PetService {
         existingPet.setWeight(petDetails.getWeight());
         existingPet.setImageUri(petDetails.getImageUri());
 
-        // Manejo complejo de la lista de vacunas (opcional pero recomendado)
-        // Aquí podrías borrar las antiguas y añadir las nuevas, o unirlas
-        // Por simplicidad, copiaremos la lista (requiere manejo cuidadoso)
-        // existingPet.setVaccineRecords(petDetails.getVaccineRecords());
+        // --- CORRECCIÓN: Gestión de Vacunas ---
+        // 1. Limpiamos la lista actual (borra las vacunas viejas o huerfanas)
+        if (existingPet.getVaccineRecords() != null) {
+            existingPet.getVaccineRecords().clear();
+        }
+        
+        // 2. Agregamos las nuevas vacunas que vienen del celular
+        if (petDetails.getVaccineRecords() != null) {
+            existingPet.getVaccineRecords().addAll(petDetails.getVaccineRecords());
+            
+            // 3. ¡IMPORTANTE! Asignamos la mascota como "dueño" de cada vacuna
+            for (VaccineRecord record : existingPet.getVaccineRecords()) {
+                record.setPet(existingPet);
+            }
+        }
 
         return petRepository.save(existingPet);
     }
