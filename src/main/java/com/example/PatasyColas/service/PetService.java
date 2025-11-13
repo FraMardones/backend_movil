@@ -6,6 +6,8 @@ import com.example.PatasyColas.repository.PetRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.PatasyColas.model.Usuario;
+import com.example.PatasyColas.repository.UsuarioRepository; // Importar
 
 import java.util.List;
 
@@ -14,21 +16,28 @@ public class PetService {
 
     @Autowired
     private PetRepository petRepository;
+    @Autowired
+    private UsuarioRepository usuarioRepository; // Inyectar repositorio de usuarios
 
-    // Equivalente a tu getAllPets()
-    public List<Pet> getAllPets() {
-        return petRepository.findAll();
+    // Obtener mascotas SOLO del usuario logueado
+    public List<Pet> getPetsByUser(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        return petRepository.findByUsuarioId(usuario.getId());
     }
 
-    // Equivalente a tu getPetById(petId)
     public Pet getPetById(Integer petId) {
         return petRepository.findById(petId)
                 .orElseThrow(() -> new EntityNotFoundException("Mascota no encontrada con id: " + petId));
     }
 
-    // Equivalente a tu insertPet(pet)
-    public Pet createPet(Pet pet) {
-        // Aseguramos la relación bidireccional
+    // Crear mascota asignada al usuario logueado
+    public Pet createPet(Pet pet, String userEmail) {
+        Usuario usuario = usuarioRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        
+        pet.setUsuario(usuario); // Asignar dueño
+
         if (pet.getVaccineRecords() != null) {
             for (VaccineRecord record : pet.getVaccineRecords()) {
                 record.setPet(pet);
@@ -36,7 +45,6 @@ public class PetService {
         }
         return petRepository.save(pet);
     }
-
     // Equivalente a tu updatePet(pet)
     public Pet updatePet(Integer petId, Pet petDetails) {
         Pet existingPet = getPetById(petId); // Reusa la lógica de búsqueda

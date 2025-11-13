@@ -5,37 +5,31 @@ import com.example.PatasyColas.service.PetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication; // Importar
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/pets") // La URL base protegida
+@RequestMapping("/api/pets")
 public class PetController {
 
     @Autowired
     private PetService petService;
 
-    // GET /api/pets -> Obtener todas las mascotas
     @GetMapping
-    public ResponseEntity<List<Pet>> getAllPets() {
-        return ResponseEntity.ok(petService.getAllPets());
+    public ResponseEntity<List<Pet>> getAllPets(Authentication authentication) {
+        // Obtenemos el email del usuario desde el Token
+        String email = authentication.getName(); 
+        return ResponseEntity.ok(petService.getPetsByUser(email));
     }
 
-    // GET /api/pets/1 -> Obtener una mascota por ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Pet> getPetById(@PathVariable Integer id) {
-        Pet pet = petService.getPetById(id);
-        return ResponseEntity.ok(pet);
-    }
-
-    // POST /api/pets -> Crear una nueva mascota
     @PostMapping
-    public ResponseEntity<Pet> createPet(@RequestBody Pet pet) {
-        Pet newPet = petService.createPet(pet);
+    public ResponseEntity<Pet> createPet(@RequestBody Pet pet, Authentication authentication) {
+        String email = authentication.getName();
+        Pet newPet = petService.createPet(pet, email);
         return ResponseEntity.status(HttpStatus.CREATED).body(newPet);
     }
-
     // PUT /api/pets/1 -> Actualizar una mascota por ID
     @PutMapping("/{id}")
     public ResponseEntity<Pet> updatePet(@PathVariable Integer id, @RequestBody Pet petDetails) {
