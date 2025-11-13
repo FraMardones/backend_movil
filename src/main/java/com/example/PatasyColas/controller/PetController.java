@@ -25,11 +25,16 @@ public class PetController {
     }
 
     @PostMapping
-    public ResponseEntity<Pet> createPet(@RequestBody Pet pet, Authentication authentication) {
-        String email = authentication.getName();
-        Pet newPet = petService.createPet(pet, email);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newPet);
-    }
+public ResponseEntity<Pet> createPet(@RequestBody Pet pet, Authentication authentication) {
+    // 1. AGREGA ESTA LÍNEA DE LOG
+    System.out.println(">>> INTENTO DE CREAR MASCOTA: " + pet.getName()); 
+    
+    String email = authentication.getName();
+    System.out.println(">>> USUARIO IDENTIFICADO: " + email); // 2. VERIFICA QUIÉN LO PIDE
+
+    Pet newPet = petService.createPet(pet, email);
+    return ResponseEntity.status(HttpStatus.CREATED).body(newPet);
+}
     // PUT /api/pets/1 -> Actualizar una mascota por ID
     @PutMapping("/{id}")
     public ResponseEntity<Pet> updatePet(@PathVariable Integer id, @RequestBody Pet petDetails) {
