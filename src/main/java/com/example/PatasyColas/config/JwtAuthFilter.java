@@ -6,7 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpHeaders; // Importamos HttpHeaders
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,13 +32,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
+        // --- LA VERDADERA CORRECCIÓN ---
+        // Obtenemos la ruta de la petición (ej: "/api/auth/register")
+        final String requestURI = request.getRequestURI();
+
+        // Si la petición es a una ruta de autenticación (login o register),
+        // OMITIMOS el filtro y dejamos que la petición continúe.
+        if (requestURI.contains("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return; // Detenemos la ejecución del filtro aquí
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
+
+        // Si NO es una ruta de auth, continuamos con la validación normal...
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         jwt = authHeader.substring(7);
-        userEmail = jwtService.getUsernameFromToken(jwt);
+        
+        // Esta es la línea que antes daba el error de "token expirado"
+        // Ahora solo se ejecuta en rutas protegidas, lo cual es correcto.
+        userEmail = jwtService.getUsernameFromToken(jwt); 
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
