@@ -1,14 +1,15 @@
 package com.example.PatasyColas.service;
 
 import com.example.PatasyColas.model.Pet;
+import com.example.PatasyColas.model.Usuario; // ¡IMPORTANTE!
 import com.example.PatasyColas.model.VaccineRecord;
 import com.example.PatasyColas.repository.PetRepository;
+import com.example.PatasyColas.repository.UsuarioRepository; // ¡IMPORTANTE!
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-// ¡Asegúrate de que esta importación exista!
-import java.util.ArrayList; 
+import java.util.ArrayList; // ¡IMPORTANTE!
 import java.util.List;
 
 @Service
@@ -17,8 +18,19 @@ public class PetService {
     @Autowired
     private PetRepository petRepository;
 
-    public List<Pet> getAllPets() {
-        return petRepository.findAll();
+    // --- ¡NUEVO! ---
+    // Inyectamos el repositorio de usuarios para poder encontrar al dueño
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    // --- ¡NUEVO! ---
+    // Busca mascotas POR EMAIL de usuario, no todas
+    public List<Pet> getPetsByUser(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        
+        // Usamos el método que creamos en el PetRepository
+        return petRepository.findByUsuarioId(usuario.getId());
     }
 
     public Pet getPetById(Integer petId) {
@@ -26,8 +38,17 @@ public class PetService {
                 .orElseThrow(() -> new EntityNotFoundException("Mascota no encontrada con id: " + petId));
     }
 
-    public Pet createPet(Pet pet) {
-        // Aseguramos la relación bidireccional al crear
+    // --- ¡MODIFICADO! ---
+    // Ahora acepta el email del dueño para asignar la mascota
+    public Pet createPet(Pet pet, String userEmail) {
+        // Buscamos al dueño
+        Usuario usuario = usuarioRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        
+        // Asignamos el dueño a la mascota
+        pet.setUsuario(usuario);
+
+        // Aseguramos la relación bidireccional
         if (pet.getVaccineRecords() != null) {
             for (VaccineRecord record : pet.getVaccineRecords()) {
                 record.setPet(pet);
@@ -36,12 +57,11 @@ public class PetService {
         return petRepository.save(pet);
     }
 
-    // --- MÉTODO CORREGIDO A PRUEBA DE NULOS ---
+    // --- ¡MODIFICADO! ---
+    // Esta es la versión segura que hicimos (a prueba de nulos)
     public Pet updatePet(Integer petId, Pet petDetails) {
-        // 1. Buscamos la mascota que ya existe en la BD
         Pet existingPet = getPetById(petId); 
 
-        // 2. Actualizamos los datos simples
         existingPet.setName(petDetails.getName());
         existingPet.setSpecies(petDetails.getSpecies());
         existingPet.setBreed(petDetails.getBreed());
@@ -50,30 +70,20 @@ public class PetService {
         existingPet.setImageUri(petDetails.getImageUri());
 
         // --- GESTIÓN SEGURA DE VACUNAS ---
-
-        // 3. Limpiamos la lista de vacunas antiguas, SOLO SI existe
         if (existingPet.getVaccineRecords() != null) {
             existingPet.getVaccineRecords().clear();
         }
 
-        // 4. Verificamos si la mascota que nos envían (petDetails) trae vacunas nuevas
         if (petDetails.getVaccineRecords() != null && !petDetails.getVaccineRecords().isEmpty()) {
-            
-            // 5. Si la lista original era nula, la creamos
             if (existingPet.getVaccineRecords() == null) {
                  existingPet.setVaccineRecords(new ArrayList<>());
             }
-
-            // 6. Añadimos las vacunas nuevas a la mascota existente
             existingPet.getVaccineRecords().addAll(petDetails.getVaccineRecords());
-
-            // 7. Asignamos la mascota (dueño) a cada vacuna nueva para la relación
             for (VaccineRecord record : existingPet.getVaccineRecords()) {
                 record.setPet(existingPet);
             }
         }
         
-        // 8. Guardamos la mascota con los datos simples Y las vacunas actualizadas
         return petRepository.save(existingPet);
     }
 
