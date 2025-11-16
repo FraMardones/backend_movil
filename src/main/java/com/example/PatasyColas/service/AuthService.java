@@ -26,17 +26,17 @@ public class AuthService {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         
         // Obtenemos el usuario (que implementa UserDetails)
-        UserDetails user = usuarioRepository.findByEmail(request.getEmail()).orElseThrow();
+        // Lo guardamos como 'Usuario' para acceder a .getFirstname()
+        Usuario user = usuarioRepository.findByEmail(request.getEmail()).orElseThrow();
         
-        // --- CORRECCIÓN ---
-        // Generamos ambos tokens usando los nuevos métodos de JwtService
         String accessToken = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         
-        // Devolvemos ambos tokens en la respuesta
+        // Devolvemos ambos tokens Y EL NOMBRE en la respuesta
         return AuthResponse.builder()
-                .token(accessToken) // 'token' es el Access Token
+                .token(accessToken)
                 .refreshToken(refreshToken)
+                .firstname(user.getFirstname()) // <-- ¡CAMBIO AQUÍ!
                 .build();
     }
 
@@ -46,22 +46,19 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
-                .role(Role.USER) // Todos se registran como USER por defecto
+                .role(Role.USER) 
                 .build();
 
         usuarioRepository.save(user);
 
-        // 'user' es una instancia de UserDetails, así que podemos usarlo
-        
-        // --- CORRECCIÓN ---
-        // Generamos ambos tokens
         String accessToken = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        // Devolvemos ambos tokens en la respuesta
+        // Devolvemos ambos tokens Y EL NOMBRE en la respuesta
         return AuthResponse.builder()
-                .token(accessToken) // 'token' es el Access Token
+                .token(accessToken)
                 .refreshToken(refreshToken)
+                .firstname(user.getFirstname()) // <-- ¡CAMBIO AQUÍ!
                 .build();
     }
 }
