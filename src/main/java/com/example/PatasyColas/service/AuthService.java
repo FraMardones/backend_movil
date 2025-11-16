@@ -24,10 +24,19 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        
+        // Obtenemos el usuario (que implementa UserDetails)
         UserDetails user = usuarioRepository.findByEmail(request.getEmail()).orElseThrow();
-        String token = jwtService.getToken(user);
+        
+        // --- CORRECCIÓN ---
+        // Generamos ambos tokens usando los nuevos métodos de JwtService
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        
+        // Devolvemos ambos tokens en la respuesta
         return AuthResponse.builder()
-                .token(token)
+                .token(accessToken) // 'token' es el Access Token
+                .refreshToken(refreshToken)
                 .build();
     }
 
@@ -42,8 +51,17 @@ public class AuthService {
 
         usuarioRepository.save(user);
 
+        // 'user' es una instancia de UserDetails, así que podemos usarlo
+        
+        // --- CORRECCIÓN ---
+        // Generamos ambos tokens
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        // Devolvemos ambos tokens en la respuesta
         return AuthResponse.builder()
-                .token(jwtService.getToken(user))
+                .token(accessToken) // 'token' es el Access Token
+                .refreshToken(refreshToken)
                 .build();
     }
 }
