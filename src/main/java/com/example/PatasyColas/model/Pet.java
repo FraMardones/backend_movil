@@ -27,6 +27,8 @@ public class Pet {
     private String weight;
     private String imageUri;
 
+    private String imageUrl;
+
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<VaccineRecord> vaccineRecords;
 

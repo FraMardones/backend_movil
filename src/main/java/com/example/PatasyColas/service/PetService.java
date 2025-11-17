@@ -18,18 +18,24 @@ public class PetService {
     @Autowired
     private PetRepository petRepository;
 
-    // --- ¡NUEVO! ---
-    // Inyectamos el repositorio de usuarios para poder encontrar al dueño
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // --- ¡NUEVO! ---
-    // Busca mascotas POR EMAIL de usuario, no todas
+    // --- ¡NUEVO MÉTODO! ---
+    // Este es el método que pedía tu nota. 
+    // Es una forma más limpia de llamarlo desde el PetController
+    // después de que el controlador obtiene el Usuario autenticado.
+    public List<Pet> getPetsByUsuario(Usuario usuario) {
+        // Llama al método que ya tenías en tu PetRepository
+        return petRepository.findByUsuarioId(usuario.getId());
+    }
+
+    // --- MÉTODO EXISTENTE ---
+    // Lo mantenemos por si lo usas en otro lugar.
     public List<Pet> getPetsByUser(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
         
-        // Usamos el método que creamos en el PetRepository
         return petRepository.findByUsuarioId(usuario.getId());
     }
 
@@ -39,7 +45,9 @@ public class PetService {
     }
 
     // --- ¡MODIFICADO! ---
-    // Ahora acepta el email del dueño para asignar la mascota
+    // Este método ahora será llamado por el PetController,
+    // el cual ya habrá construido el objeto Pet (incluyendo la imageUrl
+    // que obtuvo del StorageService).
     public Pet createPet(Pet pet, String userEmail) {
         // Buscamos al dueño
         Usuario usuario = usuarioRepository.findByEmail(userEmail)
@@ -48,6 +56,8 @@ public class PetService {
         // Asignamos el dueño a la mascota
         pet.setUsuario(usuario);
 
+        // El campo pet.imageUrl ya debería venir asignado desde el Controller
+        
         // Aseguramos la relación bidireccional
         if (pet.getVaccineRecords() != null) {
             for (VaccineRecord record : pet.getVaccineRecords()) {
@@ -58,18 +68,20 @@ public class PetService {
     }
 
     // --- ¡MODIFICADO! ---
-    // Esta es la versión segura que hicimos (a prueba de nulos)
+    // Cambiamos imageUri por imageUrl
     public Pet updatePet(Integer petId, Pet petDetails) {
-        Pet existingPet = getPetById(petId); 
+        Pet existingPet = getPetById(petId);
 
         existingPet.setName(petDetails.getName());
-        existingPet.setSpecies(petDetails.getSpecies());
+        existingPet.setSpecies(petDetails.getSpecies()); // Mantengo esto
         existingPet.setBreed(petDetails.getBreed());
         existingPet.setAge(petDetails.getAge());
-        existingPet.setWeight(petDetails.getWeight());
-        existingPet.setImageUri(petDetails.getImageUri());
+        existingPet.setWeight(petDetails.getWeight()); // Mantengo esto
+        
+        // --- CAMBIO PRINCIPAL ---
+        existingPet.setImageUrl(petDetails.getImageUrl()); // Cambiado de imageUri a imageUrl
 
-        // --- GESTIÓN SEGURA DE VACUNAS ---
+        // --- GESTIÓN SEGURA DE VACUNAS (Tu lógica original) ---
         if (existingPet.getVaccineRecords() != null) {
             existingPet.getVaccineRecords().clear();
         }
