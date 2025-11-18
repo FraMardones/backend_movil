@@ -4,6 +4,7 @@ import com.example.PatasyColas.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // <-- ¡AÑADIR ESTE IMPORT!
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -28,34 +29,35 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // --- ¡CAMBIO 1! ---
-    // Quitamos 'JwtAuthFilter' de aquí. Ya no se inyecta en la clase.
+    // Tu cambio de inyección de dependencias (¡está bien!)
     private final UsuarioRepository usuarioRepository;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception { 
-        // --- ¡CAMBIO 2! ---
-        // 'JwtAuthFilter' se inyecta AQUÍ, en el método, no en la clase.
         
         http
-                .csrf(csrf -> csrf.disable()) 
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/pets/**").authenticated() 
-                        .anyRequest().authenticated() 
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
-                )
-                .authenticationProvider(authenticationProvider())
-                // La variable 'jwtAuthFilter' ahora viene del parámetro del método
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .csrf(csrf -> csrf.disable()) 
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(auth -> auth
+                
+                .requestMatchers("/api/auth/**").permitAll()
+                
+                .requestMatchers(HttpMethod.GET, "/api/pets/images/**").permitAll() 
+                
+                .requestMatchers("/api/pets/**").authenticated() 
+                
+                .anyRequest().authenticated() 
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // --- (El resto de los beans permanecen igual) ---
+    // --- (El resto de tus beans están perfectos) ---
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -78,7 +80,7 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> usuarioRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
     }
 
     @Bean
@@ -87,9 +89,10 @@ public class SecurityConfig {
         
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
-            "https://*.onrender.com" 
+            "https://backend-movil-1hs0.onrender.com" // <-- TU CÓDIGO ACTUAL
         ));
         
+        // --- El resto de tu CORS está bien ---
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
